@@ -97,7 +97,7 @@
 
   <!-- WALLET INPUT -->
   <div id="walletSection" class="wallet-section">
-    <input id="xidInput" placeholder="Enter Amanda User (e.g. 998877)" />
+    <input id="xidInput" placeholder="Simulation of AMANDA Supplying FolderRSN" />
     <button onclick="loginB()">Continue</button>
   </div>
 
@@ -112,6 +112,7 @@
 <script type="module">
 import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
 
+/* FLOW A (existing) */
 const configA = {
   authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
   client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
@@ -121,18 +122,30 @@ const configA = {
   scope: "openid profile email"
 };
 
-const userManagerA = new UserManager(configA);
+/* FLOW B (DaVinci Application – CORRECT) */
+const configB = {
+  authority: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/davinci",
+  client_id: "3dfd68d631946e490656ec7de03877e",
+  redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
+  response_type: "code",
+  scope: "openid"
+};
 
+const userManagerA = new UserManager(configA);
+const userManagerB = new UserManager(configB);
+
+/* UI */
 window.showWalletInput = () => {
   document.getElementById("walletSection").style.display = "block";
 };
 
+/* FLOW A */
 window.loginA = async () => {
   await userManagerA.signinRedirect();
 };
 
-/* 🔥 FLOW B — DIRECT DAVINCI REDIRECT */
-window.loginB = () => {
+/* FLOW B */
+window.loginB = async () => {
   const xid = document.getElementById("xidInput").value;
 
   if (!xid) {
@@ -140,24 +153,22 @@ window.loginB = () => {
     return;
   }
 
-  const baseUrl = "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/davinci/flows/b0fa20dbcebfec13b16e5bc3e29b8fdc/authorize";
-
-  const params = new URLSearchParams({
-    client_id: "81d5e2dc-45d7-4ee7-9d04-756a6516753a",
-    response_type: "code",
-    scope: "openid",
-    redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
-    FolderRSN: xid
+  await userManagerB.signinRedirect({
+    extraQueryParams: {
+      FolderRSN: xid
+    }
   });
-
-  window.location = baseUrl + "?" + params.toString();
 };
 
+/* LOGOUT */
 window.logout = async () => {
   await userManagerA.signoutRedirect();
 };
 
-userManagerA.getUser().then(user => {
+/* DISPLAY USER (works for BOTH flows) */
+const userManager = new UserManager(configA); // shared storage
+
+userManager.getUser().then(user => {
   if (user) {
     const oid = user.profile["oid.user"] || "N/A";
     const amanda = user.profile["amanda.user"] || "N/A";
@@ -167,7 +178,7 @@ userManagerA.getUser().then(user => {
     document.getElementById("identity").style.display = "block";
     document.getElementById("identity").innerText =
       "OID = " + oid + "\n" +
-      "Your FolderRNS = " + amanda;
+      "FolderRSN = " + amanda;
 
     document.getElementById("claims").style.display = "block";
     document.getElementById("claims").innerText =
