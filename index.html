@@ -103,9 +103,8 @@ userManager.getUser().then(user => {
     console.log("User profile:", user.profile);
 
     const displayName =
-      user.profile.name ||
-      user.profile.given_name ||
-      user.profile.email ||
+      user.profile["oid.user"] ||
+      user.profile["amanda.user"] ||
       user.profile.sub;
 
     document.getElementById("status").innerText =
