@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Callback</title>
+</head>
+<body>
+
+<script type="module">
+import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
+
+const config = {
+  authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
+  client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
+  redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
+  response_type: "code",
+  scope: "openid profile email"
+};
+
+const userManager = new UserManager(config);
+
+await userManager.signinRedirectCallback();
+
+window.location = "/";
+</script>
+
+</body>
+</html>
