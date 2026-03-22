@@ -167,8 +167,14 @@ window.loginB = () => {
 };
 
 /* LOGOUT */
-window.logout = async () => {
-  await userManagerA.signoutRedirect();
+window.logout = () => {
+  const logoutUrl = "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as/signoff";
+
+  const params = new URLSearchParams({
+    post_logout_redirect_uri: "https://git-brial05.github.io/hybrid-auth/"
+  });
+
+  window.location.href = logoutUrl + "?" + params.toString();
 };
 
 /* DISPLAY USER (works for BOTH flows) */
