@@ -61,6 +61,11 @@
       background: #6c757d;
     }
 
+    .wallet-section {
+      display: none;
+      margin-top: 10px;
+    }
+
     input {
       width: 100%;
       padding: 10px;
@@ -83,13 +88,16 @@
     Login Flow — Traditional Username & Password
   </button>
 
-  <!-- FLOW B INPUT -->
-  <input id="xidInput" placeholder="Enter Amanda User (e.g. 998877)" />
-
   <!-- FLOW B -->
-  <button onclick="loginB()">
+  <button onclick="showWalletInput()">
     Login Flow — GNB Digital Wallet
   </button>
+
+  <!-- WALLET INPUT (hidden until clicked) -->
+  <div id="walletSection" class="wallet-section">
+    <input id="xidInput" placeholder="Enter Amanda User (e.g. 998877)" />
+    <button onclick="loginB()">Continue</button>
+  </div>
 
   <button class="secondary" onclick="logout()">
     Logout
@@ -112,10 +120,10 @@ const configA = {
   scope: "openid profile email"
 };
 
-/* FLOW B CONFIG (DaVinci) — UPDATE authority */
+/* FLOW B CONFIG */
 const configB = {
-  authority: "https://auth.pingone.ca/YOUR_DAVINCI_ENV/as", // 🔥 CHANGE THIS
-  client_id: "YOUR_DAVINCI_CLIENT_ID", // 🔥 CHANGE THIS
+  authority: "https://auth.pingone.ca/YOUR_DAVINCI_ENV/as", // 🔥 update
+  client_id: "YOUR_DAVINCI_CLIENT_ID", // 🔥 update
   redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
   post_logout_redirect_uri: "https://git-brial05.github.io/hybrid-auth/",
   response_type: "code",
@@ -124,6 +132,11 @@ const configB = {
 
 const userManagerA = new UserManager(configA);
 const userManagerB = new UserManager(configB);
+
+/* SHOW INPUT */
+window.showWalletInput = () => {
+  document.getElementById("walletSection").style.display = "block";
+};
 
 /* FLOW A */
 window.loginA = async () => {
