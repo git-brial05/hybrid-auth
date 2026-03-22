@@ -61,12 +61,11 @@
       background: #6c757d;
     }
 
-    /* 🔥 INDENTED WALLET SECTION */
     .wallet-section {
       display: none;
       margin-top: 10px;
-      margin-left: 20px;        /* ← indentation */
-      width: calc(100% - 20px); /* ← keeps alignment clean */
+      margin-left: 20px;
+      width: calc(100% - 20px);
     }
 
     input {
@@ -122,17 +121,7 @@ const configA = {
   scope: "openid profile email"
 };
 
-const configB = {
-  authority: "https://auth.pingone.ca/YOUR_DAVINCI_ENV/as",
-  client_id: "YOUR_DAVINCI_CLIENT_ID",
-  redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
-  post_logout_redirect_uri: "https://git-brial05.github.io/hybrid-auth/",
-  response_type: "code",
-  scope: "openid profile email"
-};
-
 const userManagerA = new UserManager(configA);
-const userManagerB = new UserManager(configB);
 
 window.showWalletInput = () => {
   document.getElementById("walletSection").style.display = "block";
@@ -142,7 +131,8 @@ window.loginA = async () => {
   await userManagerA.signinRedirect();
 };
 
-window.loginB = async () => {
+/* 🔥 FLOW B — DIRECT DAVINCI REDIRECT */
+window.loginB = () => {
   const xid = document.getElementById("xidInput").value;
 
   if (!xid) {
@@ -150,11 +140,17 @@ window.loginB = async () => {
     return;
   }
 
-  await userManagerB.signinRedirect({
-    extraQueryParams: {
-      xid: xid
-    }
+  const baseUrl = "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/davinci/flows/b0fa20dbcebfec13b16e5bc3e29b8fdc/authorize";
+
+  const params = new URLSearchParams({
+    client_id: "81d5e2dc-45d7-4ee7-9d04-756a6516753a",
+    response_type: "code",
+    scope: "openid",
+    redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
+    FolderRSN: xid
   });
+
+  window.location = baseUrl + "?" + params.toString();
 };
 
 window.logout = async () => {
