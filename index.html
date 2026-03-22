@@ -122,7 +122,7 @@ const configA = {
   scope: "openid profile email"
 };
 
-/* FLOW B (DaVinci Application – CORRECT) */
+/* FLOW B (unused for redirect — left intact per instruction) */
 const configB = {
   authority: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/davinci",
   client_id: "3dfd68d631946e490656ec7de03877e",
@@ -144,8 +144,8 @@ window.loginA = async () => {
   await userManagerA.signinRedirect();
 };
 
-/* FLOW B */
-window.loginB = async () => {
+/* FLOW B — FIXED */
+window.loginB = () => {
   const xid = document.getElementById("xidInput").value;
 
   if (!xid) {
@@ -153,11 +153,17 @@ window.loginB = async () => {
     return;
   }
 
-  await userManagerB.signinRedirect({
-    extraQueryParams: {
-      FolderRSN: xid
-    }
+  const baseUrl = "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/davinci/policy/8a274eb2350a1cb6d5b97359a81f8f8e/authorize";
+
+  const params = new URLSearchParams({
+    client_id: "3dfd68d631946e490656ec7de03877e",
+    response_type: "code",
+    scope: "openid",
+    redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
+    FolderRSN: xid
   });
+
+  window.location.href = baseUrl + "?" + params.toString();
 };
 
 /* LOGOUT */
@@ -166,7 +172,7 @@ window.logout = async () => {
 };
 
 /* DISPLAY USER (works for BOTH flows) */
-const userManager = new UserManager(configA); // shared storage
+const userManager = new UserManager(configA);
 
 userManager.getUser().then(user => {
   if (user) {
