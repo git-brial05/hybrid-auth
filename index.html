@@ -19,12 +19,7 @@
       width: 500px;
     }
 
-    h1 {
-      margin-bottom: 10px;
-    }
-
     #status {
-      color: #333;
       margin-bottom: 15px;
       font-weight: bold;
     }
@@ -54,22 +49,24 @@
       background: linear-gradient(135deg, #007BFF, #0056b3);
       color: white;
       border: none;
-      padding: 14px 20px;
+      padding: 14px;
       font-size: 15px;
       border-radius: 8px;
       cursor: pointer;
       width: 100%;
-      transition: all 0.2s ease;
       margin-bottom: 10px;
-    }
-
-    button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
     .secondary {
       background: #6c757d;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
     }
   </style>
 </head>
@@ -77,16 +74,25 @@
 <body>
 
 <div class="container">
-  <h1>Hybrid Authentication Demo</h1>
+  <h2>Hybrid Authentication Demo</h2>
 
   <div id="status">Not logged in</div>
 
-  <button onclick="login()">
+  <!-- FLOW A -->
+  <button onclick="loginA()">
     Login Flow — Traditional Username & Password
   </button>
 
+  <!-- FLOW B INPUT -->
+  <input id="xidInput" placeholder="Enter Amanda User (e.g. 998877)" />
+
+  <!-- FLOW B -->
+  <button onclick="loginB()">
+    Login Flow — GNB Digital Wallet
+  </button>
+
   <button class="secondary" onclick="logout()">
-    Logout (Full Sign Out)
+    Logout
   </button>
 
   <div id="identity"></div>
@@ -96,7 +102,8 @@
 <script type="module">
 import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
 
-const config = {
+/* FLOW A CONFIG */
+const configA = {
   authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
   client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
   redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
@@ -105,40 +112,61 @@ const config = {
   scope: "openid profile email"
 };
 
-const userManager = new UserManager(config);
-
-// LOGIN
-window.login = async () => {
-  await userManager.signinRedirect();
+/* FLOW B CONFIG (DaVinci) — UPDATE authority */
+const configB = {
+  authority: "https://auth.pingone.ca/YOUR_DAVINCI_ENV/as", // 🔥 CHANGE THIS
+  client_id: "YOUR_DAVINCI_CLIENT_ID", // 🔥 CHANGE THIS
+  redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
+  post_logout_redirect_uri: "https://git-brial05.github.io/hybrid-auth/",
+  response_type: "code",
+  scope: "openid profile email"
 };
 
-// LOGOUT
+const userManagerA = new UserManager(configA);
+const userManagerB = new UserManager(configB);
+
+/* FLOW A */
+window.loginA = async () => {
+  await userManagerA.signinRedirect();
+};
+
+/* FLOW B */
+window.loginB = async () => {
+  const xid = document.getElementById("xidInput").value;
+
+  if (!xid) {
+    alert("Enter Amanda User");
+    return;
+  }
+
+  await userManagerB.signinRedirect({
+    extraQueryParams: {
+      xid: xid
+    }
+  });
+};
+
+/* LOGOUT */
 window.logout = async () => {
-  await userManager.signoutRedirect();
+  await userManagerA.signoutRedirect();
 };
 
-// DISPLAY USER + CLAIMS
-userManager.getUser().then(user => {
+/* DISPLAY USER */
+userManagerA.getUser().then(user => {
   if (user) {
-    console.log("User profile:", user.profile);
-
     const oid = user.profile["oid.user"] || "N/A";
     const amanda = user.profile["amanda.user"] || "N/A";
 
     document.getElementById("status").innerText = "Authenticated";
 
-    const identityDiv = document.getElementById("identity");
-    identityDiv.style.display = "block";
-    identityDiv.innerText =
+    document.getElementById("identity").style.display = "block";
+    document.getElementById("identity").innerText =
       "OID = " + oid + "\n" +
-      "FolderRNS = " + amanda;
+      "Your FolderRNS = " + amanda;
 
-    const claimsDiv = document.getElementById("claims");
-    claimsDiv.style.display = "block";
-    claimsDiv.innerText = JSON.stringify(user.profile, null, 2);
-
-  } else {
-    document.getElementById("status").innerText = "Not logged in";
+    document.getElementById("claims").style.display = "block";
+    document.getElementById("claims").innerText =
+      JSON.stringify(user.profile, null, 2);
   }
 });
 </script>
