@@ -25,7 +25,7 @@
 
     #status {
       color: #555;
-      margin-bottom: 25px;
+      margin-bottom: 20px;
     }
 
     button {
@@ -38,6 +38,7 @@
       cursor: pointer;
       width: 100%;
       transition: all 0.2s ease;
+      margin-bottom: 10px;
     }
 
     button:hover {
@@ -48,6 +49,10 @@
     button:active {
       transform: translateY(0);
       box-shadow: none;
+    }
+
+    .secondary {
+      background: #6c757d;
     }
   </style>
 </head>
@@ -61,6 +66,10 @@
 
   <button onclick="login()">
     Login Flow — Traditional Username & Password
+  </button>
+
+  <button class="secondary" onclick="logout()">
+    Logout (Reset Demo)
   </button>
 </div>
 
@@ -77,17 +86,35 @@ const config = {
 
 const userManager = new UserManager(config);
 
+// LOGIN
 window.login = async () => {
   await userManager.signinRedirect();
 };
 
+// LOGOUT (SPA only — clears local session)
+window.logout = async () => {
+  await userManager.removeUser();
+  window.location.reload();
+};
+
+// CHECK USER STATE
 userManager.getUser().then(user => {
   if (user) {
+    console.log("User profile:", user.profile);
+
+    const displayName =
+      user.profile.name ||
+      user.profile.given_name ||
+      user.profile.email ||
+      user.profile.sub;
+
     document.getElementById("status").innerText =
-      "Hi " + (user.profile.name || user.profile.email);
+      "Hi " + displayName;
+  } else {
+    document.getElementById("status").innerText = "Not logged in";
   }
 });
 </script>
-console.log(user.profile);
+
 </body>
 </html>
