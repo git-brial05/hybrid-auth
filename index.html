@@ -61,9 +61,12 @@
       background: #6c757d;
     }
 
+    /* 🔥 INDENTED WALLET SECTION */
     .wallet-section {
       display: none;
       margin-top: 10px;
+      margin-left: 20px;        /* ← indentation */
+      width: calc(100% - 20px); /* ← keeps alignment clean */
     }
 
     input {
@@ -93,7 +96,7 @@
     Login Flow — GNB Digital Wallet
   </button>
 
-  <!-- WALLET INPUT (hidden until clicked) -->
+  <!-- WALLET INPUT -->
   <div id="walletSection" class="wallet-section">
     <input id="xidInput" placeholder="Enter Amanda User (e.g. 998877)" />
     <button onclick="loginB()">Continue</button>
@@ -110,7 +113,6 @@
 <script type="module">
 import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
 
-/* FLOW A CONFIG */
 const configA = {
   authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
   client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
@@ -120,10 +122,9 @@ const configA = {
   scope: "openid profile email"
 };
 
-/* FLOW B CONFIG */
 const configB = {
-  authority: "https://auth.pingone.ca/YOUR_DAVINCI_ENV/as", // 🔥 update
-  client_id: "YOUR_DAVINCI_CLIENT_ID", // 🔥 update
+  authority: "https://auth.pingone.ca/YOUR_DAVINCI_ENV/as",
+  client_id: "YOUR_DAVINCI_CLIENT_ID",
   redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
   post_logout_redirect_uri: "https://git-brial05.github.io/hybrid-auth/",
   response_type: "code",
@@ -133,17 +134,14 @@ const configB = {
 const userManagerA = new UserManager(configA);
 const userManagerB = new UserManager(configB);
 
-/* SHOW INPUT */
 window.showWalletInput = () => {
   document.getElementById("walletSection").style.display = "block";
 };
 
-/* FLOW A */
 window.loginA = async () => {
   await userManagerA.signinRedirect();
 };
 
-/* FLOW B */
 window.loginB = async () => {
   const xid = document.getElementById("xidInput").value;
 
@@ -159,12 +157,10 @@ window.loginB = async () => {
   });
 };
 
-/* LOGOUT */
 window.logout = async () => {
   await userManagerA.signoutRedirect();
 };
 
-/* DISPLAY USER */
 userManagerA.getUser().then(user => {
   if (user) {
     const oid = user.profile["oid.user"] || "N/A";
