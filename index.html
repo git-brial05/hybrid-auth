@@ -1,1 +1,37 @@
-<h1>Hybrid Authenticaton Demo</h1>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hybrid Authentication Demo</title>
+</head>
+<body>
+
+<h2 id="status">Not logged in</h2>
+<button onclick="login()">Login with your Traditional Username and Password</button>
+
+<script type="module">
+import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
+
+const config = {
+  authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
+  client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
+  redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
+  response_type: "code",
+  scope: "openid profile email"
+};
+
+const userManager = new UserManager(config);
+
+window.login = async () => {
+  await userManager.signinRedirect();
+};
+
+const user = await userManager.getUser();
+
+if (user) {
+  document.getElementById("status").innerText =
+    "Hi " + (user.profile.name || user.profile.email);
+}
+</script>
+
+</body>
+</html>
