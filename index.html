@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Hybrid Authentication Demo</title>
+  <title>PingOne OIDC Demo</title>
 </head>
 <body>
 
+<h1>Welcome to PingOne Demo</h1>
+
 <h2 id="status">Not logged in</h2>
-<button onclick="login()">Login with your Traditional Username and Password</button>
+
+<button onclick="login()">Login - Flow A</button>
 
 <script type="module">
 import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
@@ -21,16 +24,18 @@ const config = {
 
 const userManager = new UserManager(config);
 
+// ONLY triggered by button
 window.login = async () => {
   await userManager.signinRedirect();
 };
 
-const user = await userManager.getUser();
-
-if (user) {
-  document.getElementById("status").innerText =
-    "Hi " + (user.profile.name || user.profile.email);
-}
+// AFTER redirect, we check if user exists
+userManager.getUser().then(user => {
+  if (user) {
+    document.getElementById("status").innerText =
+      "Hi " + (user.profile.name || user.profile.email);
+  }
+});
 </script>
 
 </body>
