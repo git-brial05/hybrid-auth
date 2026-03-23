@@ -30,7 +30,6 @@
       background: #f1f3f5;
       border-radius: 8px;
       font-family: monospace;
-      line-height: 1.6;
       display: none;
     }
 
@@ -64,8 +63,6 @@
     .wallet-section {
       display: none;
       margin-top: 10px;
-      margin-left: 20px;
-      width: calc(100% - 20px);
     }
 
     input {
@@ -95,9 +92,8 @@
     Login Flow — GNB Digital Wallet
   </button>
 
-  <!-- WALLET INPUT -->
   <div id="walletSection" class="wallet-section">
-    <input id="xidInput" placeholder="Simulation of AMANDA Supplying FolderRSN" />
+    <input id="xidInput" placeholder="Enter FolderRSN" />
     <button onclick="loginB()">Continue</button>
   </div>
 
@@ -112,7 +108,7 @@
 <script type="module">
 import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
 
-/* FLOW A */
+/* ---------- FLOW A CONFIG ---------- */
 const configA = {
   authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
   client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
@@ -122,71 +118,82 @@ const configA = {
   scope: "openid profile email"
 };
 
-const userManagerA = new UserManager(configA);
+/* ---------- FLOW B CONFIG ---------- */
+const configB = {
+  authority: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/davinci/flows/b0fa20dbcebfec13b16e5bc3e29b8fdc",
+  client_id: "81d5e2dc-45d7-4ee7-9d04-756a6516753a",
+  redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
+  response_type: "code",
+  scope: "openid"
+};
 
-/* UI */
+const userManagerA = new UserManager(configA);
+const userManagerB = new UserManager(configB);
+
+/* ---------- UI ---------- */
 window.showWalletInput = () => {
   document.getElementById("walletSection").style.display = "block";
 };
 
-/* FLOW A */
+/* ---------- FLOW A ---------- */
 window.loginA = async () => {
   await userManagerA.signinRedirect();
 };
 
-/* FLOW B — FINAL (P1 FLOW ENTRY) */
-window.loginB = () => {
+/* ---------- FLOW B (clean, PKCE handled by library) ---------- */
+window.loginB = async () => {
   const xid = document.getElementById("xidInput").value;
 
   if (!xid) {
-    alert("Enter Amanda User");
+    alert("Enter FolderRSN");
     return;
   }
 
-  const baseUrl = "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as/authorize";
-
-  const params = new URLSearchParams({
-    client_id: "3dfd68d6d31946e490656ec7de03877e",
-    response_type: "code",
-    scope: "openid",
-    redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
-    FolderRSN: xid
+  await userManagerB.signinRedirect({
+    extraQueryParams: {
+      FolderRSN: xid
+    }
   });
-
-  window.location.href = baseUrl + "?" + params.toString();
 };
 
-/* LOGOUT */
-window.logout = () => {
-  const logoutUrl = "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as/signoff";
-
-  const params = new URLSearchParams({
-    post_logout_redirect_uri: "https://git-brial05.github.io/hybrid-auth/"
-  });
-
-  window.location.href = logoutUrl + "?" + params.toString();
+/* ---------- LOGOUT ---------- */
+window.logout = async () => {
+  await userManagerA.signoutRedirect();
 };
 
-/* DISPLAY USER */
-const userManager = new UserManager(configA);
+/* ---------- CALLBACK HANDLING ---------- */
+const currentUrl = window.location.href;
 
-userManager.getUser().then(user => {
-  if (user) {
-    const oid = user.profile["oid.user"] || "N/A";
-    const amanda = user.profile["amanda.user"] || "N/A";
-
-    document.getElementById("status").innerText = "Authenticated";
-
-    document.getElementById("identity").style.display = "block";
-    document.getElementById("identity").innerText =
-      "OID = " + oid + "\n" +
-      "FolderRSN = " + amanda;
-
-    document.getElementById("claims").style.display = "block";
-    document.getElementById("claims").innerText =
-      JSON.stringify(user.profile, null, 2);
+if (currentUrl.includes("code=")) {
+  try {
+    // Try both managers
+    await userManagerA.signinRedirectCallback().catch(() => {});
+    await userManagerB.signinRedirectCallback().catch(() => {});
+  } catch (e) {
+    console.error("Callback error", e);
   }
-});
+}
+
+/* ---------- DISPLAY USER ---------- */
+const user =
+  await userManagerA.getUser() ||
+  await userManagerB.getUser();
+
+if (user) {
+  const oid = user.profile["oid.user"] || "N/A";
+  const amanda = user.profile["amanda.user"] || "N/A";
+
+  document.getElementById("status").innerText = "Authenticated";
+
+  document.getElementById("identity").style.display = "block";
+  document.getElementById("identity").innerText =
+    "OID = " + oid + "\n" +
+    "FolderRSN = " + amanda;
+
+  document.getElementById("claims").style.display = "block";
+  document.getElementById("claims").innerText =
+    JSON.stringify(user.profile, null, 2);
+}
 </script>
 
 </body>
