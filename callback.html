@@ -9,52 +9,32 @@
 import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
 
 /*
-  🔥 KEY FIX:
-  Use SAME configs as index
-  AND try B first (because that’s your failing case)
+  🔥 SINGLE manager
+  🔥 Uses the SAME redirect_uri
+  🔥 Does NOT try to guess client
 */
 
-const configB = {
-  authority: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as",
-  client_id: "81d5e2dc-45d7-4ee7-9d04-756a6516753a",
+const userManager = new UserManager({
+  authority: window.location.href.includes("020cfdde")
+    ? "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as"
+    : "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
+
+  client_id: window.location.href.includes("020cfdde")
+    ? "81d5e2dc-45d7-4ee7-9d04-756a6516753a"
+    : "06d445f0-8a93-4ad1-9b75-804f48de9461",
+
   redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
   response_type: "code",
-  scope: "openid",
-};
+  scope: "openid profile email"
+});
 
-const configA = {
-  authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
-  client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
-  redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
-  response_type: "code",
-  scope: "openid profile email",
-};
-
-let success = false;
-
-/* 🔥 TRY B FIRST (important) */
 try {
-  const mgrB = new UserManager(configB);
-  await mgrB.signinRedirectCallback();
-  console.log("SUCCESS B");
-  success = true;
+  await userManager.signinRedirectCallback();
+  console.log("Callback success");
 } catch (e) {
-  console.error("B failed:", e);
+  console.error("Callback failed:", e);
 }
 
-/* THEN A */
-if (!success) {
-  try {
-    const mgrA = new UserManager(configA);
-    await mgrA.signinRedirectCallback();
-    console.log("SUCCESS A");
-    success = true;
-  } catch (e) {
-    console.error("A failed:", e);
-  }
-}
-
-/* FINAL REDIRECT */
 window.location.href = "/hybrid-auth/";
 </script>
 
