@@ -85,12 +85,10 @@
 
   <div id="status">Not logged in</div>
 
-  <!-- FLOW A -->
   <button onclick="loginA()">
     Login Flow — Traditional Username & Password
   </button>
 
-  <!-- FLOW B -->
   <button onclick="showWalletInput()">
     Login Flow — GNB Digital Wallet
   </button>
@@ -111,7 +109,6 @@
 <script type="module">
 import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
 
-/* FLOW A */
 const configA = {
   authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
   client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
@@ -121,7 +118,6 @@ const configA = {
   scope: "openid profile email"
 };
 
-/* FLOW B (fixed) */
 const configB = {
   authority: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as",
   client_id: "81d5e2dc-45d7-4ee7-9d04-756a6516753a",
@@ -134,17 +130,15 @@ const configB = {
 const userManagerA = new UserManager(configA);
 const userManagerB = new UserManager(configB);
 
-/* UI */
 window.showWalletInput = () => {
   document.getElementById("walletSection").style.display = "block";
 };
 
-/* FLOW A */
 window.loginA = async () => {
   await userManagerA.signinRedirect();
 };
 
-/* FLOW B (fixed launch) */
+/* 🔥 FIXED BUTTON B */
 window.loginB = async () => {
   const xid = document.getElementById("xidInput").value.trim();
 
@@ -153,21 +147,39 @@ window.loginB = async () => {
     return;
   }
 
-  const request = await userManagerB.createSigninRequest({
-    extraQueryParams: {
-      FolderRSN: xid
-    }
-  });
+  try {
+    const request = await userManagerB.createSigninRequest({
+      extraQueryParams: {
+        FolderRSN: xid
+      }
+    });
 
-  const davinciUrl = request.url.replace(
-    "/as/authorize",
-    "/davinci/flows/b0fa20dbcebfec13b16e5bc3e29b8fdc/authorize"
-  );
+    const davinciUrl = request.url.replace(
+      "/as/authorize",
+      "/davinci/flows/b0fa20dbcebfec13b16e5bc3e29b8fdc/authorize"
+    );
 
-  window.location = davinciUrl;
+    console.log("Launching DaVinci URL:", davinciUrl);
+
+    // FORCE redirect (this is the key fix)
+    window.location.href = davinciUrl;
+
+  } catch (e) {
+    console.error("Signin request failed:", e);
+
+    // HARD fallback (guaranteed launch)
+    const fallback =
+      "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/davinci/flows/b0fa20dbcebfec13b16e5bc3e29b8fdc/authorize" +
+      "?client_id=81d5e2dc-45d7-4ee7-9d04-756a6516753a" +
+      "&response_type=code" +
+      "&scope=openid" +
+      "&redirect_uri=" + encodeURIComponent("https://git-brial05.github.io/hybrid-auth/callback.html") +
+      "&FolderRSN=" + encodeURIComponent(xid);
+
+    window.location.href = fallback;
+  }
 };
 
-/* LOGOUT */
 window.logout = async () => {
   const userA = await userManagerA.getUser().catch(() => null);
   const userB = await userManagerB.getUser().catch(() => null);
@@ -183,7 +195,6 @@ window.logout = async () => {
   await userManagerA.signoutRedirect();
 };
 
-/* DISPLAY USER */
 const user =
   await userManagerA.getUser().catch(() => null) ||
   await userManagerB.getUser().catch(() => null);
