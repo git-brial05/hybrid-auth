@@ -8,58 +8,45 @@
 <script type="module">
 import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
 
-const configA = {
-  authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
-  client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
-  redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
-  response_type: "code",
-  scope: "openid profile email"
-};
+/*
+  🔥 CRITICAL:
+  This config MUST MATCH the one used during signin
+  EXACTLY for state to resolve
+*/
 
-const configB = {
-  authority: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as",
-  client_id: "81d5e2dc-45d7-4ee7-9d04-756a6516753a",
-  redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
-  response_type: "code",
-  scope: "openid"
-};
-
-const userManagerA = new UserManager(configA);
-const userManagerB = new UserManager(configB);
-
-/* 🔥 READ STATE SAFELY */
-const url = new URL(window.location.href);
-const stateParam = url.searchParams.get("state");
-
-/* oidc-client stores full state internally — we must resolve it */
-let flow = null;
-
+/* Try A FIRST */
 try {
-  const stateA = await userManagerA._client._stateStore.get(stateParam);
-  if (stateA?.data?.flow === "A") {
-    flow = "A";
-  }
-} catch {}
+  const mgrA = new UserManager({
+    authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
+    client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
+    redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
+    response_type: "code",
+    scope: "openid profile email"
+  });
 
-if (!flow) {
-  try {
-    const stateB = await userManagerB._client._stateStore.get(stateParam);
-    if (stateB?.data?.flow === "B") {
-      flow = "B";
-    }
-  } catch {}
+  await mgrA.signinRedirectCallback();
+  console.log("A success");
+} catch (e) {
+  console.log("A failed");
 }
 
-/* 🎯 ROUTE CORRECTLY */
-if (flow === "A") {
-  await userManagerA.signinRedirectCallback();
-} else if (flow === "B") {
-  await userManagerB.signinRedirectCallback();
-} else {
-  console.error("Could not determine flow");
+/* Then B */
+try {
+  const mgrB = new UserManager({
+    authority: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as",
+    client_id: "81d5e2dc-45d7-4ee7-9d04-756a6516753a",
+    redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
+    response_type: "code",
+    scope: "openid"
+  });
+
+  await mgrB.signinRedirectCallback();
+  console.log("B success");
+} catch (e) {
+  console.log("B failed");
 }
 
-/* RETURN */
+/* Always go back */
 window.location.href = "/hybrid-auth/";
 </script>
 
