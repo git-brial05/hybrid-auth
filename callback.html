@@ -8,40 +8,49 @@
 <script type="module">
 import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
 
-/* CONFIG A */
-const userManagerA = new UserManager({
-  authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
-  client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
-  redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
-  response_type: "code",
-  scope: "openid profile email"
-});
+const configs = [
+  {
+    name: "A",
+    authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
+    client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461"
+  },
+  {
+    name: "B",
+    authority: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as",
+    client_id: "81d5e2dc-45d7-4ee7-9d04-756a6516753a"
+  }
+];
 
-/* CONFIG B */
-const userManagerB = new UserManager({
-  authority: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as",
-  client_id: "81d5e2dc-45d7-4ee7-9d04-756a6516753a",
-  redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
-  response_type: "code",
-  scope: "openid"
-});
-
-/* 🔥 TRY BOTH — BUT DO NOT PRE-CHECK STATE */
 let success = false;
 
-try {
-  await userManagerA.signinRedirectCallback();
-  success = true;
-} catch (e) {}
-
-if (!success) {
+for (const cfg of configs) {
   try {
-    await userManagerB.signinRedirectCallback();
+    console.log("Trying callback for", cfg.name);
+
+    const mgr = new UserManager({
+      authority: cfg.authority,
+      client_id: cfg.client_id,
+      redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
+      response_type: "code",
+      scope: "openid"
+    });
+
+    await mgr.signinRedirectCallback();
+
+    console.log("SUCCESS for", cfg.name);
     success = true;
-  } catch (e) {}
+    break;
+
+  } catch (e) {
+    console.error("FAILED for", cfg.name, e);
+  }
 }
 
-/* 🚀 RETURN */
+if (!success) {
+  console.error("NO CALLBACK SUCCEEDED");
+}
+
+/* Redirect anyway */
 window.location.href = "/hybrid-auth/";
 </script>
 
