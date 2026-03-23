@@ -138,7 +138,7 @@ window.loginA = async () => {
   await userManagerA.signinRedirect();
 };
 
-/* 🔥 FIXED BUTTON B */
+/* ✅ CORRECT BUTTON B */
 window.loginB = async () => {
   const xid = document.getElementById("xidInput").value.trim();
 
@@ -147,37 +147,12 @@ window.loginB = async () => {
     return;
   }
 
-  try {
-    const request = await userManagerB.createSigninRequest({
-      extraQueryParams: {
-        FolderRSN: xid
-      }
-    });
-
-    const davinciUrl = request.url.replace(
-      "/as/authorize",
-      "/davinci/flows/b0fa20dbcebfec13b16e5bc3e29b8fdc/authorize"
-    );
-
-    console.log("Launching DaVinci URL:", davinciUrl);
-
-    // FORCE redirect (this is the key fix)
-    window.location.href = davinciUrl;
-
-  } catch (e) {
-    console.error("Signin request failed:", e);
-
-    // HARD fallback (guaranteed launch)
-    const fallback =
-      "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/davinci/flows/b0fa20dbcebfec13b16e5bc3e29b8fdc/authorize" +
-      "?client_id=81d5e2dc-45d7-4ee7-9d04-756a6516753a" +
-      "&response_type=code" +
-      "&scope=openid" +
-      "&redirect_uri=" + encodeURIComponent("https://git-brial05.github.io/hybrid-auth/callback.html") +
-      "&FolderRSN=" + encodeURIComponent(xid);
-
-    window.location.href = fallback;
-  }
+  await userManagerB.signinRedirect({
+    extraQueryParams: {
+      FolderRSN: xid,
+      acr_values: "8a274eb2350a1cb6d5b97359a81f8f8e"
+    }
+  });
 };
 
 window.logout = async () => {
