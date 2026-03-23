@@ -8,49 +8,53 @@
 <script type="module">
 import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
 
-const configs = [
-  {
-    name: "A",
-    authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
-    client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461"
-  },
-  {
-    name: "B",
-    authority: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as",
-    client_id: "81d5e2dc-45d7-4ee7-9d04-756a6516753a"
-  }
-];
+/*
+  🔥 KEY FIX:
+  Use SAME configs as index
+  AND try B first (because that’s your failing case)
+*/
+
+const configB = {
+  authority: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as",
+  client_id: "81d5e2dc-45d7-4ee7-9d04-756a6516753a",
+  redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
+  response_type: "code",
+  scope: "openid",
+};
+
+const configA = {
+  authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
+  client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
+  redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
+  response_type: "code",
+  scope: "openid profile email",
+};
 
 let success = false;
 
-for (const cfg of configs) {
+/* 🔥 TRY B FIRST (important) */
+try {
+  const mgrB = new UserManager(configB);
+  await mgrB.signinRedirectCallback();
+  console.log("SUCCESS B");
+  success = true;
+} catch (e) {
+  console.error("B failed:", e);
+}
+
+/* THEN A */
+if (!success) {
   try {
-    console.log("Trying callback for", cfg.name);
-
-    const mgr = new UserManager({
-      authority: cfg.authority,
-      client_id: cfg.client_id,
-      redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
-      response_type: "code",
-      scope: "openid"
-    });
-
-    await mgr.signinRedirectCallback();
-
-    console.log("SUCCESS for", cfg.name);
+    const mgrA = new UserManager(configA);
+    await mgrA.signinRedirectCallback();
+    console.log("SUCCESS A");
     success = true;
-    break;
-
   } catch (e) {
-    console.error("FAILED for", cfg.name, e);
+    console.error("A failed:", e);
   }
 }
 
-if (!success) {
-  console.error("NO CALLBACK SUCCEEDED");
-}
-
-/* Redirect anyway */
+/* FINAL REDIRECT */
 window.location.href = "/hybrid-auth/";
 </script>
 
