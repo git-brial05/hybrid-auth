@@ -112,7 +112,7 @@
 <script type="module">
 import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
 
-/* FLOW A (existing) */
+/* FLOW A */
 const configA = {
   authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
   client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
@@ -122,17 +122,7 @@ const configA = {
   scope: "openid profile email"
 };
 
-/* FLOW B (unused for redirect — left intact per instruction) */
-const configB = {
-  authority: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/davinci",
-  client_id: "3dfd68d6d31946e490656ec7de03877e",
-  redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
-  response_type: "code",
-  scope: "openid"
-};
-
 const userManagerA = new UserManager(configA);
-const userManagerB = new UserManager(configB);
 
 /* UI */
 window.showWalletInput = () => {
@@ -144,7 +134,7 @@ window.loginA = async () => {
   await userManagerA.signinRedirect();
 };
 
-/* FLOW B — FIXED */
+/* FLOW B — FINAL (P1 FLOW ENTRY) */
 window.loginB = () => {
   const xid = document.getElementById("xidInput").value;
 
@@ -153,13 +143,14 @@ window.loginB = () => {
     return;
   }
 
-  const baseUrl = "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/davinci/policy/8a274eb2350a1cb6d5b97359a81f8f8e/authorize";
+  const baseUrl = "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as/authorize";
 
   const params = new URLSearchParams({
     client_id: "3dfd68d6d31946e490656ec7de03877e",
     response_type: "code",
     scope: "openid",
     redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
+    flowPolicyId: "8a274eb2350a1cb6d5b97359a81f8f8e",
     FolderRSN: xid
   });
 
@@ -177,7 +168,7 @@ window.logout = () => {
   window.location.href = logoutUrl + "?" + params.toString();
 };
 
-/* DISPLAY USER (works for BOTH flows) */
+/* DISPLAY USER */
 const userManager = new UserManager(configA);
 
 userManager.getUser().then(user => {
