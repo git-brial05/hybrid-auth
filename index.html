@@ -109,6 +109,7 @@
 <script type="module">
 import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
 
+/* FLOW A */
 const configA = {
   authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
   client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
@@ -118,6 +119,7 @@ const configA = {
   scope: "openid profile email"
 };
 
+/* FLOW B */
 const configB = {
   authority: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as",
   client_id: "81d5e2dc-45d7-4ee7-9d04-756a6516753a",
@@ -130,15 +132,17 @@ const configB = {
 const userManagerA = new UserManager(configA);
 const userManagerB = new UserManager(configB);
 
+/* UI */
 window.showWalletInput = () => {
   document.getElementById("walletSection").style.display = "block";
 };
 
+/* FLOW A */
 window.loginA = async () => {
   await userManagerA.signinRedirect();
 };
 
-/* ✅ CORRECT BUTTON B */
+/* FLOW B */
 window.loginB = async () => {
   const xid = document.getElementById("xidInput").value.trim();
 
@@ -155,6 +159,7 @@ window.loginB = async () => {
   });
 };
 
+/* LOGOUT */
 window.logout = async () => {
   const userA = await userManagerA.getUser().catch(() => null);
   const userB = await userManagerB.getUser().catch(() => null);
@@ -170,10 +175,19 @@ window.logout = async () => {
   await userManagerA.signoutRedirect();
 };
 
-const user =
-  await userManagerA.getUser().catch(() => null) ||
-  await userManagerB.getUser().catch(() => null);
+/* 🔥 FIXED USER RETRIEVAL */
+let userA = await userManagerA.getUser().catch(() => null);
+let userB = await userManagerB.getUser().catch(() => null);
 
+let user = null;
+
+if (userB) {
+  user = userB;
+} else if (userA) {
+  user = userA;
+}
+
+/* DISPLAY USER */
 if (user) {
   const oid = user.profile["oid.user"] || "N/A";
   const amanda = user.profile["amanda.user"] || "N/A";
