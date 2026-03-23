@@ -8,7 +8,7 @@
 <script type="module">
 import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
 
-/* BOTH CONFIGS */
+/* CONFIGS */
 const configA = {
   authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
   client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
@@ -28,27 +28,38 @@ const configB = {
 const userManagerA = new UserManager(configA);
 const userManagerB = new UserManager(configB);
 
+/* 🔥 DETERMINE FLOW USING STATE */
+const url = new URL(window.location.href);
+const state = url.searchParams.get("state");
+
+/*
+  oidc-client stores state internally per client.
+  We try to match state BEFORE consuming it.
+*/
+
 let handled = false;
 
-/* TRY B FIRST */
+/* Try B FIRST — but SAFELY */
 try {
-  await userManagerB.signinRedirectCallback();
-  handled = true;
-} catch (e) {
-  console.log("Not Flow B");
-}
+  const storedStateB = await userManagerB._client._stateStore.get(state);
+  if (storedStateB) {
+    await userManagerB.signinRedirectCallback();
+    handled = true;
+  }
+} catch (e) {}
 
-/* THEN TRY A */
+/* Then A */
 if (!handled) {
   try {
-    await userManagerA.signinRedirectCallback();
-    handled = true;
-  } catch (e) {
-    console.log("Not Flow A");
-  }
+    const storedStateA = await userManagerA._client._stateStore.get(state);
+    if (storedStateA) {
+      await userManagerA.signinRedirectCallback();
+      handled = true;
+    }
+  } catch (e) {}
 }
 
-/* REDIRECT BACK */
+/* Redirect back */
 window.location = "/hybrid-auth/";
 </script>
 
