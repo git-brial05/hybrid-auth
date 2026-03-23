@@ -1,26 +1,208 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Callback</title>
+  <title>Hybrid Authentication Demo</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+    }
+
+    .container {
+      margin: 40px;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+      width: 500px;
+    }
+
+    #status {
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+
+    #identity {
+      margin-top: 10px;
+      padding: 10px;
+      background: #f1f3f5;
+      border-radius: 8px;
+      font-family: monospace;
+      line-height: 1.6;
+      display: none;
+    }
+
+    #claims {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 13px;
+      margin-top: 15px;
+      white-space: pre-wrap;
+      display: none;
+    }
+
+    button {
+      background: linear-gradient(135deg, #007BFF, #0056b3);
+      color: white;
+      border: none;
+      padding: 14px;
+      font-size: 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    .secondary {
+      background: #6c757d;
+    }
+
+    .wallet-section {
+      display: none;
+      margin-top: 10px;
+      margin-left: 20px;
+      width: calc(100% - 20px);
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+  </style>
 </head>
+
 <body>
+
+<div class="container">
+  <h2>Hybrid Authentication Demo</h2>
+
+  <div id="status">Not logged in</div>
+
+  <!-- FLOW A -->
+  <button onclick="loginA()">
+    Login Flow — Traditional Username & Password
+  </button>
+
+  <!-- FLOW B -->
+  <button onclick="showWalletInput()">
+    Login Flow — GNB Digital Wallet
+  </button>
+
+  <div id="walletSection" class="wallet-section">
+    <input id="xidInput" placeholder="Simulation of AMANDA Supplying FolderRSN" />
+    <button onclick="loginB()">Continue</button>
+  </div>
+
+  <button class="secondary" onclick="logout()">
+    Logout
+  </button>
+
+  <div id="identity"></div>
+  <div id="claims"></div>
+</div>
 
 <script type="module">
 import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
 
-const config = {
+/* FLOW A */
+const configA = {
   authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
   client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
   redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
+  post_logout_redirect_uri: "https://git-brial05.github.io/hybrid-auth/",
   response_type: "code",
   scope: "openid profile email"
 };
 
-const userManager = new UserManager(config);
+/* FLOW B (fixed) */
+const configB = {
+  authority: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as",
+  client_id: "81d5e2dc-45d7-4ee7-9d04-756a6516753a",
+  redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
+  post_logout_redirect_uri: "https://git-brial05.github.io/hybrid-auth/",
+  response_type: "code",
+  scope: "openid"
+};
 
-await userManager.signinRedirectCallback();
+const userManagerA = new UserManager(configA);
+const userManagerB = new UserManager(configB);
 
-window.location = "/hybrid-auth/";
+/* UI */
+window.showWalletInput = () => {
+  document.getElementById("walletSection").style.display = "block";
+};
+
+/* FLOW A */
+window.loginA = async () => {
+  await userManagerA.signinRedirect();
+};
+
+/* FLOW B (fixed launch) */
+window.loginB = async () => {
+  const xid = document.getElementById("xidInput").value.trim();
+
+  if (!xid) {
+    alert("Enter Amanda User");
+    return;
+  }
+
+  const request = await userManagerB.createSigninRequest({
+    extraQueryParams: {
+      FolderRSN: xid
+    }
+  });
+
+  const davinciUrl = request.url.replace(
+    "/as/authorize",
+    "/davinci/flows/b0fa20dbcebfec13b16e5bc3e29b8fdc/authorize"
+  );
+
+  window.location = davinciUrl;
+};
+
+/* LOGOUT */
+window.logout = async () => {
+  const userA = await userManagerA.getUser().catch(() => null);
+  const userB = await userManagerB.getUser().catch(() => null);
+
+  await userManagerA.removeUser().catch(() => {});
+  await userManagerB.removeUser().catch(() => {});
+
+  if (userB) {
+    await userManagerB.signoutRedirect();
+    return;
+  }
+
+  await userManagerA.signoutRedirect();
+};
+
+/* DISPLAY USER */
+const user =
+  await userManagerA.getUser().catch(() => null) ||
+  await userManagerB.getUser().catch(() => null);
+
+if (user) {
+  const oid = user.profile["oid.user"] || "N/A";
+  const amanda = user.profile["amanda.user"] || "N/A";
+
+  document.getElementById("status").innerText = "Authenticated";
+
+  document.getElementById("identity").style.display = "block";
+  document.getElementById("identity").innerText =
+    "OID = " + oid + "\n" +
+    "FolderRSN = " + amanda;
+
+  document.getElementById("claims").style.display = "block";
+  document.getElementById("claims").innerText =
+    JSON.stringify(user.profile, null, 2);
+}
 </script>
 
 </body>
