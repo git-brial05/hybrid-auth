@@ -140,8 +140,9 @@ window.showWalletInput = () => {
 /* FLOW A */
 window.loginA = async () => {
   await userManagerA.signinRedirect({
-  state: { flow: "A" }
-});
+    state: { flow: "A" }
+  });
+};
 
 /* FLOW B */
 window.loginB = async () => {
@@ -153,12 +154,12 @@ window.loginB = async () => {
   }
 
   await userManagerB.signinRedirect({
-  state: { flow: "B" },
-  extraQueryParams: {
-    FolderRSN: xid,
-    acr_values: "8a274eb2350a1cb6d5b97359a81f8f8e"
-  }
-});
+    state: { flow: "B" },
+    extraQueryParams: {
+      FolderRSN: xid,
+      acr_values: "8a274eb2350a1cb6d5b97359a81f8f8e"
+    }
+  });
 };
 
 /* LOGOUT */
@@ -177,19 +178,12 @@ window.logout = async () => {
   await userManagerA.signoutRedirect();
 };
 
-/* 🔥 FIXED USER RETRIEVAL */
+/* USER DISPLAY */
 let userA = await userManagerA.getUser().catch(() => null);
 let userB = await userManagerB.getUser().catch(() => null);
 
-let user = null;
+let user = userB || userA;
 
-if (userB) {
-  user = userB;
-} else if (userA) {
-  user = userA;
-}
-
-/* DISPLAY USER */
 if (user) {
   const oid = user.profile["oid.user"] || "N/A";
   const amanda = user.profile["amanda.user"] || "N/A";
