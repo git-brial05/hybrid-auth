@@ -30,6 +30,7 @@
       background: #f1f3f5;
       border-radius: 8px;
       font-family: monospace;
+      line-height: 1.6;
       display: none;
     }
 
@@ -63,6 +64,8 @@
     .wallet-section {
       display: none;
       margin-top: 10px;
+      margin-left: 20px;
+      width: calc(100% - 20px);
     }
 
     input {
@@ -93,7 +96,7 @@
   </button>
 
   <div id="walletSection" class="wallet-section">
-    <input id="xidInput" placeholder="Enter FolderRSN" />
+    <input id="xidInput" placeholder="Simulation of AMANDA Supplying FolderRSN" />
     <button onclick="loginB()">Continue</button>
   </div>
 
@@ -108,7 +111,7 @@
 <script type="module">
 import { UserManager } from 'https://cdn.skypack.dev/oidc-client-ts';
 
-/* ---------- FLOW A CONFIG ---------- */
+/* FLOW A (unchanged, working) */
 const configA = {
   authority: "https://auth.pingone.ca/e08e4c88-fe72-4a8d-a577-1b9cd10bd50d/as",
   client_id: "06d445f0-8a93-4ad1-9b75-804f48de9461",
@@ -118,34 +121,47 @@ const configA = {
   scope: "openid profile email"
 };
 
-/* ---------- FLOW B CONFIG ---------- */
+/*
+  FLOW B
+  Uses a PingOne OIDC client, but overrides the authorization endpoint
+  so the auth request starts at the DaVinci flow authorize URL.
+*/
 const configB = {
-  authority: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/davinci/flows/b0fa20dbcebfec13b16e5bc3e29b8fdc",
+  authority: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as",
   client_id: "81d5e2dc-45d7-4ee7-9d04-756a6516753a",
   redirect_uri: "https://git-brial05.github.io/hybrid-auth/callback.html",
+  post_logout_redirect_uri: "https://git-brial05.github.io/hybrid-auth/",
   response_type: "code",
-  scope: "openid"
+  scope: "openid",
+  metadata: {
+    issuer: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as",
+    authorization_endpoint: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/davinci/flows/b0fa20dbcebfec13b16e5bc3e29b8fdc/authorize",
+    token_endpoint: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as/token",
+    userinfo_endpoint: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as/userinfo",
+    end_session_endpoint: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as/signoff",
+    jwks_uri: "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/as/jwks"
+  }
 };
 
 const userManagerA = new UserManager(configA);
 const userManagerB = new UserManager(configB);
 
-/* ---------- UI ---------- */
+/* UI */
 window.showWalletInput = () => {
   document.getElementById("walletSection").style.display = "block";
 };
 
-/* ---------- FLOW A ---------- */
+/* FLOW A */
 window.loginA = async () => {
   await userManagerA.signinRedirect();
 };
 
-/* ---------- FLOW B (clean, PKCE handled by library) ---------- */
+/* FLOW B */
 window.loginB = async () => {
-  const xid = document.getElementById("xidInput").value;
+  const xid = document.getElementById("xidInput").value.trim();
 
   if (!xid) {
-    alert("Enter FolderRSN");
+    alert("Enter Amanda User");
     return;
   }
 
@@ -156,28 +172,28 @@ window.loginB = async () => {
   });
 };
 
-/* ---------- LOGOUT ---------- */
+/* LOGOUT */
 window.logout = async () => {
+  const userA = await userManagerA.getUser().catch(() => null);
+  const userB = await userManagerB.getUser().catch(() => null);
+
+  // Clear local app storage either way
+  await userManagerA.removeUser().catch(() => {});
+  await userManagerB.removeUser().catch(() => {});
+
+  // Prefer signing out from whichever session is active
+  if (userB) {
+    await userManagerB.signoutRedirect();
+    return;
+  }
+
   await userManagerA.signoutRedirect();
 };
 
-/* ---------- CALLBACK HANDLING ---------- */
-const currentUrl = window.location.href;
-
-if (currentUrl.includes("code=")) {
-  try {
-    // Try both managers
-    await userManagerA.signinRedirectCallback().catch(() => {});
-    await userManagerB.signinRedirectCallback().catch(() => {});
-  } catch (e) {
-    console.error("Callback error", e);
-  }
-}
-
-/* ---------- DISPLAY USER ---------- */
+/* DISPLAY USER */
 const user =
-  await userManagerA.getUser() ||
-  await userManagerB.getUser();
+  await userManagerA.getUser().catch(() => null) ||
+  await userManagerB.getUser().catch(() => null);
 
 if (user) {
   const oid = user.profile["oid.user"] || "N/A";
