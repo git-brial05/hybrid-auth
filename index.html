@@ -139,8 +139,9 @@ window.showWalletInput = () => {
 
 /* FLOW A */
 window.loginA = async () => {
-  await userManagerA.signinRedirect();
-};
+  await userManagerA.signinRedirect({
+  state: { flow: "A" }
+});
 
 /* FLOW B */
 window.loginB = async () => {
@@ -152,11 +153,12 @@ window.loginB = async () => {
   }
 
   await userManagerB.signinRedirect({
-    extraQueryParams: {
-      FolderRSN: xid,
-      acr_values: "8a274eb2350a1cb6d5b97359a81f8f8e"
-    }
-  });
+  state: { flow: "B" },
+  extraQueryParams: {
+    FolderRSN: xid,
+    acr_values: "8a274eb2350a1cb6d5b97359a81f8f8e"
+  }
+});
 };
 
 /* LOGOUT */
