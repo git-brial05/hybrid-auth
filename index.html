@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Hybrid Authentication Demo</title>
+  <title>MHNB Sample API</title>
 
   <style>
     body {
@@ -10,8 +10,13 @@
       margin: 0;
     }
 
-    .container {
+    .wrapper {
+      display: flex;
+      gap: 40px;
       margin: 40px;
+    }
+
+    .container {
       background: white;
       padding: 30px;
       border-radius: 12px;
@@ -19,7 +24,7 @@
       width: 500px;
     }
 
-    #status {
+    #status, #status2 {
       margin-bottom: 15px;
       font-weight: bold;
     }
@@ -42,6 +47,15 @@
       font-size: 13px;
       margin-top: 15px;
       white-space: pre-wrap;
+      display: none;
+    }
+
+    #apiResult {
+      margin-top: 15px;
+      padding: 10px;
+      background: #f1f3f5;
+      border-radius: 8px;
+      font-family: monospace;
       display: none;
     }
 
@@ -80,30 +94,48 @@
 
 <body>
 
-<div class="container">
-  <h2>Hybrid Authentication Demo</h2>
+<div class="wrapper">
 
-  <div id="status">Not logged in</div>
+  <!-- LEFT: LOGIN -->
+  <div class="container">
+    <h2>Hybrid Authentication Demo</h2>
 
-  <button onclick="loginA()">
-    Login Flow — Traditional Username & Password
-  </button>
+    <div id="status">Not logged in</div>
 
-  <button onclick="showWalletInput()">
-    Login Flow — GNB Digital Wallet
-  </button>
+    <button onclick="loginA()">
+      Login Flow — Traditional Username & Password
+    </button>
 
-  <div id="walletSection" class="wallet-section">
-    <input id="xidInput" placeholder="Simulation of AMANDA Supplying FolderRSN" />
-    <button onclick="loginB()">Continue</button>
+    <button onclick="showWalletInput()">
+      Login Flow — GNB Digital Wallet
+    </button>
+
+    <div id="walletSection" class="wallet-section">
+      <input id="xidInput" placeholder="Simulation of AMANDA Supplying FolderRSN" />
+      <button onclick="loginB()">Continue</button>
+    </div>
+
+    <button class="secondary" onclick="logout()">
+      Logout
+    </button>
+
+    <div id="identity"></div>
+    <div id="claims"></div>
   </div>
 
-  <button class="secondary" onclick="logout()">
-    Logout
-  </button>
+  <!-- RIGHT: API -->
+  <div class="container">
+    <h2>MHNB Sample API</h2>
 
-  <div id="identity"></div>
-  <div id="claims"></div>
+    <div id="status2">Ready</div>
+
+    <button onclick="callApi()">
+      Invoke PingOne DaVinci API
+    </button>
+
+    <div id="apiResult"></div>
+  </div>
+
 </div>
 
 <script type="module">
@@ -137,14 +169,12 @@ window.showWalletInput = () => {
   document.getElementById("walletSection").style.display = "block";
 };
 
-/* FLOW A */
+/* LOGIN A */
 window.loginA = async () => {
-  await userManagerA.signinRedirect({
-    state: { flow: "A" }
-  });
+  await userManagerA.signinRedirect({ state: { flow: "A" } });
 };
 
-/* FLOW B */
+/* LOGIN B */
 window.loginB = async () => {
   const xid = document.getElementById("xidInput").value.trim();
 
@@ -178,7 +208,46 @@ window.logout = async () => {
   await userManagerA.signoutRedirect();
 };
 
-/* USER DISPLAY */
+/* API CALL */
+window.callApi = async () => {
+
+  const userA = await userManagerA.getUser().catch(() => null);
+  const userB = await userManagerB.getUser().catch(() => null);
+
+  const user = userB || userA;
+
+  if (!user || !user.access_token) {
+    alert("User not authenticated");
+    return;
+  }
+
+  const token = user.access_token;
+
+  const url = "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/davinci/policy/9faa1a92e9661219bfdbc34ff05de4e6/start";
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({})
+    });
+
+    const data = await res.json();
+
+    document.getElementById("apiResult").style.display = "block";
+    document.getElementById("apiResult").innerText =
+      JSON.stringify(data, null, 2);
+
+  } catch (err) {
+    console.error(err);
+    alert("API call failed (likely CORS or token issue)");
+  }
+};
+
+/* DISPLAY USER */
 let userA = await userManagerA.getUser().catch(() => null);
 let userB = await userManagerB.getUser().catch(() => null);
 
