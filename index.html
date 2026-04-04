@@ -211,17 +211,14 @@ window.logout = async () => {
 /* API CALL */
 window.callApi = async () => {
 
-  const userA = await userManagerA.getUser().catch(() => null);
-  const userB = await userManagerB.getUser().catch(() => null);
+const user = (await userManagerB.getUser()) || (await userManagerA.getUser());
 
-  const user = userB || userA;
+if (!user || !user.access_token) {
+  alert("User not authenticated — login first");
+  return;
+}
 
-  if (!user || !user.access_token) {
-    alert("User not authenticated");
-    return;
-  }
-
-  const token = user.access_token;
+const token = user.access_token;
 
   const url = "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/davinci/policy/9faa1a92e9661219bfdbc34ff05de4e6/start";
 
