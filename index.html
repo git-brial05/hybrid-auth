@@ -211,14 +211,15 @@ window.logout = async () => {
 /* API CALL */
 window.callApi = async () => {
 
-const user = (await userManagerB.getUser()) || (await userManagerA.getUser());
+  // FIX #1 — Use ONLY Flow B
+  const user = await userManagerB.getUser();
 
-if (!user || !user.access_token) {
-  alert("User not authenticated — login first");
-  return;
-}
+  if (!user || !user.access_token) {
+    alert("User not authenticated — login first");
+    return;
+  }
 
-const token = user.access_token;
+  const token = user.access_token;
 
   const url = "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/davinci/policy/9faa1a92e9661219bfdbc34ff05de4e6/start";
 
@@ -226,7 +227,8 @@ const token = user.access_token;
     const res = await fetch(url, {
       method: "POST",
       headers: {
-        "Authorization": "Bearer " + token,
+        // FIX #2 — Correct debug header
+        "Authorization": `Bearer ${token || "MISSING_TOKEN"}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({})
