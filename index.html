@@ -147,8 +147,8 @@
     </button>
 
     <div class="small-note">
-      This test uses Flow B login for the parent session, then calls your Cloudflare Worker
-      to get a DaVinci SDK token, then starts the DaVinci policy.
+      This test uses Flow B login for the parent session, then calls your Cloudflare Worker,
+      which gets the DaVinci SDK token and starts the DaVinci policy.
     </div>
 
     <div id="apiResult"></div>
@@ -272,9 +272,11 @@ window.logout = async () => {
 ------------------------------------------------------------------ */
 window.callApi = async () => {
   setApiStatus("Starting...");
-  showJson("apiResult", { stage: "init", message: "Preparing API invocation..." });
+  showJson("apiResult", {
+    stage: "init",
+    message: "Preparing API invocation..."
+  });
 
-  // Require Flow B login because that is the parent simulation
   const user = await userManagerB.getUser().catch(() => null);
 
   if (!user) {
@@ -284,84 +286,31 @@ window.callApi = async () => {
   }
 
   try {
-    // Step 1: get DaVinci SDK token from your Cloudflare Worker
-    setApiStatus("Requesting DaVinci SDK token...");
+    setApiStatus("Calling Worker to start DaVinci flow...");
 
-    const sdkRes = await fetch(
-      "https://square-night-85ed.brial05.workers.dev/api/davinci-sdk-token",
+    const res = await fetch(
+      "https://square-night-85ed.brial05.workers.dev/api/start-davinci-flow",
       {
-        method: "GET",
+        method: "POST",
         headers: {
+          "Content-Type": "application/json",
           "Accept": "application/json"
-        }
+        },
+        body: JSON.stringify({})
       }
     );
 
-    const sdkText = await sdkRes.text();
-    let sdkData;
+    const text = await res.text();
+    let data;
 
     try {
-      sdkData = JSON.parse(sdkText);
+      data = JSON.parse(text);
     } catch {
-      sdkData = { raw: sdkText };
+      data = { raw: text };
     }
 
-    if (!sdkRes.ok) {
-      setApiStatus("SDK token request failed");
-      showJson("apiResult", {
-        stage: "sdk-token",
-        ok: false,
-        status: sdkRes.status,
-        body: sdkData
-      });
-      return;
-    }
-
-    const sdkToken = sdkData.access_token;
-
-    if (!sdkToken) {
-      setApiStatus("SDK token missing");
-      showJson("apiResult", {
-        stage: "sdk-token",
-        ok: false,
-        error: "Worker response did not include access_token",
-        body: sdkData
-      });
-      return;
-    }
-
-    // Step 2: start the DaVinci flow/policy
-    setApiStatus("Calling DaVinci /start...");
-
-    const pingUrl =
-      "https://auth.pingone.ca/020cfdde-1f7e-4b20-b280-6da5d08301d4/policy/9faa1a92e9661219bfdbc34ff05de4e6/start";
-
-    const startRes = await fetch(pingUrl, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${sdkToken}`,
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify({})
-    });
-
-    const startText = await startRes.text();
-    let startData;
-
-    try {
-      startData = JSON.parse(startText);
-    } catch {
-      startData = { raw: startText };
-    }
-
-    setApiStatus(startRes.ok ? "DaVinci call complete" : "DaVinci call returned error");
-    showJson("apiResult", {
-      stage: "start-flow",
-      ok: startRes.ok,
-      status: startRes.status,
-      body: startData
-    });
+    setApiStatus(res.ok ? "DaVinci call complete" : "DaVinci call returned error");
+    showJson("apiResult", data);
 
   } catch (err) {
     console.error(err);
