@@ -249,9 +249,20 @@ window.logout = async () => {
   await userManagerA.removeUser().catch(() => {});
   await userManagerB.removeUser().catch(() => {});
 
+  setStatus("Not logged in");
+  setApiStatus("Ready");
+
   document.getElementById("identity").style.display = "none";
+  document.getElementById("identity").innerText = "";
+
   document.getElementById("claims").style.display = "none";
+  document.getElementById("claims").innerText = "";
+
   document.getElementById("apiResult").style.display = "none";
+  document.getElementById("apiResult").innerText = "";
+
+  document.getElementById("walletSection").style.display = "none";
+  document.getElementById("xidInput").value = "";
 
   if (userB) {
     await userManagerB.signoutRedirect();
@@ -262,9 +273,6 @@ window.logout = async () => {
     await userManagerA.signoutRedirect();
     return;
   }
-
-  setStatus("Not logged in");
-  setApiStatus("Ready");
 };
 
 /* ------------------------------------------------------------------
